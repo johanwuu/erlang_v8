@@ -57,7 +57,7 @@ endif
 
 $(V8_LIB)/libv8_base.a: $(V8_DIR)
 	cd $(LIB_DIR) && gclient sync --revision $(V8_VERSION)
-	cd $(V8_DIR) && tools/dev/v8gen.py -vv $(BUILD_ARCH).release
+	cd $(V8_DIR) && tools/dev/v8gen.py -vv $(BUILD_ARCH).optdebug
 	cd $(V8_DIR) && gn gen "--args=is_component_build = false is_debug = false v8_static_library = true target_cpu = \"$(BUILD_ARCH)\"" out.gn/$(BUILD_ARCH).release
 	cd $(V8_DIR) && $(DEPOT_DIR)/ninja -C out.gn/$(BUILD_ARCH).release
 	@touch $@
@@ -73,17 +73,14 @@ $(PRIV_DIR)/icudtl.dat: $(V8_LIB)/libv8_base.a
 
 $(TARGET_BIN): $(PRIV_DIR) $(TARGET_SRC) $(V8_LIB)/libv8_base.a
 ifeq ($(OS),Darwin)
-	# We need to link libstdc++ as XCode defaults to libc++, and use slightly
-	# different flags, on OS X. The following assumes Mavericks, XCode and
-	# default compiler (clang).
-	# TODO: This will not build.
-	g++ -I$(V8_DIR)  \
+	g++ -I$(V8_DIR)/include \
 		$(TARGET_SRC) \
-		-stdlib=libstdc++ \
+		-stdlib=libc++ \
 		-std=c++0x \
 		-o $(TARGET_BIN) \
+		$(V8_LIB)/third_party/icu/libicuuc.a \
+		$(V8_LIB)/third_party/icu/libicui18n.a \
 		$(V8_LIB)/libv8_{base,libbase,external_snapshot,libplatform,libsampler}.a \
-		$(V8_LIB)/libicu{uc,i18n}.a \
 		-lpthread
 else
 	g++ \
